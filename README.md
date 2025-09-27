@@ -1,14 +1,27 @@
-# Embedding Server
+# Open Embedding API (OpenAI-Compatible)
 
-一个高性能、易用的嵌入向量服务，支持多种预训练模型的加载和推理，提供RESTful API接口。
+本项目提供一个 **OpenAI Embeddings API 兼容服务**，支持加载 **HuggingFace**、**ModelScope** 和 **本地模型**。  
+可以通过配置文件选择模型，并支持优先从本地缓存目录加载，未命中时自动下载。
 
-## 功能特性
+---
 
-- 支持多种嵌入模型，包括ModelScope和本地模型
-- 提供兼容OpenAI API的嵌入向量生成接口
-- 完全离线运行支持（可配置本地模型路径）
-- 基于FastAPI的高性能Web服务
-- Docker容器化支持
+## 特性
+- ✅ OpenAI API 兼容接口：`/v1/embeddings`、`/v1/models`
+- ✅ 支持 HuggingFace、ModelScope、Local 模型
+- ✅ 缓存机制：
+  - HuggingFace → `$HOME/.cache/huggingface`
+  - ModelScope → `$HOME/.cache/modelscope`
+  - Local → 配置路径直接加载
+- ✅ 启动时一次性加载所有模型（避免懒加载报错）
+- ✅ 提供健康检查 `/health`
+
+---
+
+## 安装
+
+```bash
+pip install -r requirements.txt
+
 
 ## 快速开始
 

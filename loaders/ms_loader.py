@@ -1,15 +1,17 @@
-from .base_loader import BaseLoader
-from modelscope.pipelines import pipeline
-from modelscope.utils.constant import Tasks
 import os
-
+from .base_loader import BaseLoader
 
 class ModelScopeLoader(BaseLoader):
     def load(self):
-        print(f"[MS] 懒加载 ModelScope 模型: {self.model_name} ({self.model_path})")
-        # 获取设备配置（默认为CPU）
-        device = os.getenv("DEVICE", "cpu")
-        device_id = 0 if device in ["cuda", "npu"] else -1
-        # 使用正确的sentence_embedding任务类型
-        model = pipeline(Tasks.sentence_embedding, model=self.model_path, device=device_id)
-        return model
+        from modelscope.hub.snapshot_download import snapshot_download
+        from sentence_transformers import SentenceTransformer
+
+        cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "modelscope")
+        local_path = self.config.get("local_path")
+        model_id = self.model_path
+
+        if local_path and os.path.exists(local_path):
+            return SentenceTransformer(local_path)
+
+        model_dir = snapshot_download(model_id, cache_dir=cache_dir)
+        return SentenceTransformer(model_dir)

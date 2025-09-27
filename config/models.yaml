@@ -1,7 +1,23 @@
 models:
-  bge-large:
-    provider: local
-    path: models/modelscope/BAAI/bge-m3
-  m3e-large:
-    provider: local
-    path: models/modelscope/AI-ModelScope/m3e-large
+  - name: ms-bge-m3
+    provider: modelscope
+    path: BAAI/bge-m3
+    description: ModelScope bge-m3
+  
+  - name: bge-large-zh
+    provider: huggingface
+    path: BAAI/bge-large-zh-v1.5
+    description: HuggingFace BGE Large 中文版，用于中文语义检索 + RAG
+
+  - name: text2vec-base-chinese
+    provider: huggingface
+    path: shibing624/text2vec-base-chinese
+    description: Text2Vec 中文基础 embedding 模型，速度与效果均衡
+  
+  - name: ms-m3e-base
+    provider: huggingface
+    path: moka-ai/m3e-base
+    description: M3E Base 中文+英文通用 embedding 模型
+
+  
+

@@ -1,80 +1,65 @@
+import logging, time
+import uvicorn
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from model_loader import init_configs, get_model
-import torch
-import time
-import logging
+from model_loader import init_configs, get_model, get_available_models
 
-# 配置日志
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
-
-logger.info("Starting Embedding Server...")
 
 app = FastAPI(title="Embedding API (OpenAI Compatible)")
 
-
 class EmbeddingRequest(BaseModel):
     model: str
-    input: list[str] | str
-
+    input: object  # str or list[str]
 
 @app.on_event("startup")
 def startup_event():
-    logger.info("Initializing configurations...")
-    init_configs()
-    logger.info("Configurations initialized successfully.")
+    init_configs(preload_all=True)
 
+@app.get("/v1/models")
+def list_models():
+    return {"object": "list", "data": get_available_models()}
+
+@app.get("/health")
+def health():
+    return {"status":"ok","time": int(time.time())}
 
 @app.post("/v1/embeddings")
 def create_embeddings(req: EmbeddingRequest):
+    texts = req.input
+    if isinstance(texts, str):
+        texts = [texts]
+    if not isinstance(texts, list):
+        raise HTTPException(status_code=400, detail="`input` must be a string or list of strings")
+
     try:
-        model_obj = get_model(req.model)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        model = get_model(req.model)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
-    start = time.time()
-
-    # HuggingFace / ModelScope / Local 统一处理
-    if isinstance(model_obj, tuple):  # HuggingFace (model, tokenizer)
-        model, tokenizer = model_obj
-        texts = [req.input] if isinstance(req.input, str) else req.input
-        inputs = tokenizer(texts, return_tensors="pt", padding=True, truncation=True)
-        with torch.no_grad():
-            embeddings = model(**inputs).last_hidden_state.mean(dim=1).tolist()
-    else:
-        # ModelScope pipeline 或 Local
-        texts = [req.input] if isinstance(req.input, str) else req.input
-        if hasattr(model_obj, "__call__"):  # pipeline callable
-            embeddings = [model_obj(text)["text_embedding"] for text in texts]
+    try:
+        if hasattr(model, "encode"):
+            embeddings = model.encode(texts, convert_to_numpy=True).tolist()
+        elif callable(model):
+            embeddings = [model(x).tolist() for x in texts]
         else:
-            embeddings = [model_obj for _ in texts]  # Local placeholder
+            raise RuntimeError("Unsupported model interface")
+    except Exception as e:
+        logger.exception("Failed to compute embeddings")
+        raise HTTPException(status_code=500, detail=f"Embedding error: {e}")
 
-    duration = round(time.time() - start, 3)
-    print(f"[API] 模型 {req.model} 请求完成，用时 {duration}s")
-
-    # 简单 token 统计
-    token_count = sum(len(text.split()) for text in texts)
+    data = []
+    for i, emb in enumerate(embeddings):
+        data.append({"object":"embedding","embedding": emb, "index": i})
 
     return {
         "object": "list",
-        "data": [
-            {
-                "object": "embedding",
-                "embedding": emb,
-                "index": i,
-            }
-            for i, emb in enumerate(embeddings)
-        ],
+        "data": data,
         "model": req.model,
-        "usage": {
-            "prompt_tokens": token_count,
-            "total_tokens": token_count,
-        },
+        "usage": {"prompt_tokens": len(texts), "total_tokens": len(texts)}
     }
 
-
 if __name__ == "__main__":
-    import uvicorn
-    logger.info("Starting Uvicorn server...")
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True, log_level="info")
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=False)

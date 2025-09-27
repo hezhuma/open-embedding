@@ -1,10 +1,19 @@
+import os
 from .base_loader import BaseLoader
-from transformers import AutoModel, AutoTokenizer
+from sentence_transformers import SentenceTransformer
+from transformers import pipeline
 
-
-class HuggingFaceLoader(BaseLoader):
+class HFLoader(BaseLoader):
     def load(self):
-        print(f"[HF] 懒加载 HuggingFace 模型: {self.model_name} ({self.model_path})")
-        tokenizer = AutoTokenizer.from_pretrained(self.model_path, local_files_only=True)
-        model = AutoModel.from_pretrained(self.model_path, local_files_only=True)
-        return model, tokenizer
+        cache_dir = os.path.join(os.path.expanduser("~"), ".cache", "huggingface")
+        local_path = self.config.get("local_path")
+        model_id = self.model_path
+
+        if local_path and os.path.exists(local_path):
+            return SentenceTransformer(local_path)
+
+        try:
+            return SentenceTransformer(model_id, cache_folder=cache_dir)
+        except Exception:
+            # fallback to transformers pipeline
+            return pipeline("feature-extraction", model=model_id, cache_dir=cache_dir)

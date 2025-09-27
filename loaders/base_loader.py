@@ -1,8 +1,8 @@
 class BaseLoader:
-    """基础模型加载器"""
-    def __init__(self, model_name, model_path):
-        self.model_name = model_name
+    def __init__(self, name: str, model_path: str, config: dict = None):
+        self.name = name
         self.model_path = model_path
+        self.config = config or {}
 
     def load(self):
-        raise NotImplementedError("子类需要实现 load() 方法")
+        raise NotImplementedError
