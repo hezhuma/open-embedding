@@ -1,0 +1,19 @@
+# FastAPI Web 框架
+fastapi==0.111.2
+uvicorn[standard]==0.23.2
+
+# PyTorch（CPU 或 GPU，根据环境选择）
+torch==2.2.2
+
+# HuggingFace Transformers
+transformers==4.39.2
+tokenizers==0.15.2
+
+# ModelScope（支持 ModelScope pipeline）
+modelscope==1.12.0
+
+# YAML 配置解析
+PyYAML==6.0
+
+# 可选工具库
+numpy==1.25.2

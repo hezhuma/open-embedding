@@ -1,0 +1,7 @@
+models:
+  bge-large:
+    provider: local
+    path: models/modelscope/BAAI/bge-m3
+  m3e-large:
+    provider: local
+    path: models/modelscope/AI-ModelScope/m3e-large
